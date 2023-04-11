@@ -18,10 +18,10 @@ package io.fabric8.jenkins.openshiftsync;
 import static io.fabric8.jenkins.openshiftsync.Constants.OPENSHIFT_LABELS_SECRET_CREDENTIAL_SYNC;
 import static io.fabric8.jenkins.openshiftsync.Constants.VALUE_SECRET_SYNC;
 import static io.fabric8.jenkins.openshiftsync.OpenShiftUtils.getInformerFactory;
-import static java.util.Collections.singletonMap;
+// import static java.util.Collections.singletonMap;
 
 import java.util.List;
-import java.util.Map;
+// import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -29,7 +29,9 @@ import org.slf4j.LoggerFactory;
 
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Secret;
-import io.fabric8.kubernetes.client.dsl.base.OperationContext;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+// import io.fabric8.kubernetes.client.dsl.base.OperationContext;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
@@ -54,13 +56,33 @@ public class SecretInformer implements ResourceEventHandler<Secret>, Lifecyclabl
     public void start() {
         LOGGER.info("Starting secret informer " + namespace + "!!");
         LOGGER.debug("listing Secret resources");
-        SharedInformerFactory factory = getInformerFactory().inNamespace(namespace);
-        Map<String, String> labels = singletonMap(OPENSHIFT_LABELS_SECRET_CREDENTIAL_SYNC, VALUE_SECRET_SYNC);
-        OperationContext withLabels = new OperationContext().withLabels(labels);
-        this.informer = factory.sharedIndexInformerFor(Secret.class, withLabels, getResyncPeriodMilliseconds());
-        informer.addEventHandler(this);
-        factory.startAllRegisteredInformers();
-        LOGGER.info("Secret informer started for namespace: " + namespace);
+        // SharedInformerFactory factory = getInformerFactory().inNamespace(namespace);
+        // Map<String, String> labels = singletonMap(OPENSHIFT_LABELS_SECRET_CREDENTIAL_SYNC, VALUE_SECRET_SYNC);
+        // OperationContext withLabels = new OperationContext().withLabels(labels);
+        // this.informer = factory.sharedIndexInformerFor(Secret.class, withLabels, getResyncPeriodMilliseconds());
+        
+        try (final KubernetesClient client = new KubernetesClientBuilder().build()){
+            final String namespace;
+
+            SharedInformerFactory factory = client.informers();
+
+            if (client.getConfiguration().getNamespace() != null){
+                namespace = client.getConfiguration().getNamespace();
+            } else if (client.getNamespace() != null){
+                namespace = client.getNamespace();
+            } else{
+                namespace = client.namespaces().list().getItems().stream().findFirst().orElseThrow(() -> new IllegalStateException("No namespace available")).getMetadata().getName();
+            }
+            client.secrets().inNamespace(namespace).withLabelIn(OPENSHIFT_LABELS_SECRET_CREDENTIAL_SYNC, VALUE_SECRET_SYNC).list();
+        
+            informer.addEventHandler(this);
+            factory.startAllRegisteredInformers();
+            LOGGER.info("Secret informer started for namespace: " + namespace);
+        }
+        
+        // informer.addEventHandler(this);
+        // factory.startAllRegisteredInformers();
+        // LOGGER.info("Secret informer started for namespace: " + namespace);
 
 //        SecretList list = getOpenshiftClient().secrets().inNamespace(namespace).withLabels(labels).list();
 //        onInit(list.getItems());
