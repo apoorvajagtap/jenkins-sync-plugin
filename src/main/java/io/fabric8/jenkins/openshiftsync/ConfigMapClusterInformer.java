@@ -19,12 +19,19 @@ import static io.fabric8.jenkins.openshiftsync.Constants.IMAGESTREAM_AGENT_LABEL
 import static io.fabric8.jenkins.openshiftsync.Constants.IMAGESTREAM_AGENT_LABEL_VALUES;
 import static io.fabric8.jenkins.openshiftsync.OpenShiftUtils.getInformerFactory;
 import static io.fabric8.jenkins.openshiftsync.PodTemplateUtils.CONFIGMAP;
-import static java.util.Collections.singletonMap;
+
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+// import static java.util.Collections.singletonMap;
+// import io.fabric8.kubernetes.client.Config;
+// import io.fabric8.kubernetes.client.ConfigBuilder;
+import io.fabric8.kubernetes.client.KubernetesClient;
+// import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+// import io.fabric8.kubernetes.client.dsl.Resource;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import io.fabric8.kubernetes.client.dsl.base.OperationContext;
+// import io.fabric8.kubernetes.client.dsl.base.OperationContext;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,13 +59,35 @@ public class ConfigMapClusterInformer implements ResourceEventHandler<ConfigMap>
     public void start() {
         LOGGER.info("Starting cluster wide configMap informer for " + namespaces + "!!");
         LOGGER.debug("listing ConfigMap resources");
-        SharedInformerFactory factory = getInformerFactory();
-        Map<String, String[]> labels = singletonMap(IMAGESTREAM_AGENT_LABEL, IMAGESTREAM_AGENT_LABEL_VALUES);
-        OperationContext withLabels = new OperationContext().withLabelsIn(labels);
-        this.informer = factory.sharedIndexInformerFor(ConfigMap.class, withLabels, getListIntervalInSeconds());
-        informer.addEventHandler(this);
-        factory.startAllRegisteredInformers();
-        LOGGER.info("ConfigMap informer started for namespaces: " + namespaces);
+        // SharedInformerFactory factory = getInformerFactory();
+        // Map<String, String[]> labels = singletonMap(IMAGESTREAM_AGENT_LABEL, IMAGESTREAM_AGENT_LABEL_VALUES);
+        // OperationContext withLabels = new OperationContext().withLabelsIn(labels);
+        // this.informer = factory.sharedIndexInformerFor(ConfigMap.class, withLabels, getListIntervalInSeconds());
+        
+        // Config config = new ConfigBuilder().build();
+        try (final KubernetesClient client = new DefaultKubernetesClient()){
+            final String namespace;
+            
+            SharedInformerFactory factory = client.informers();
+            
+            if (client.getConfiguration().getNamespace() != null){
+                namespace = client.getConfiguration().getNamespace();
+            } else if (client.getNamespace() != null){
+                namespace = client.getNamespace();
+            } else{
+                namespace = client.namespaces().list().getItems().stream().findFirst().orElseThrow(() -> new IllegalStateException("No namespace available")).getMetadata().getName();
+            }
+            client.configMaps().inNamespace(namespace).withLabelIn(IMAGESTREAM_AGENT_LABEL, IMAGESTREAM_AGENT_LABEL_VALUES).list();
+        
+            informer.addEventHandler(this);
+            factory.startAllRegisteredInformers();
+            LOGGER.info("ConfigMap informer started for namespaces: " + namespaces);
+        }
+
+        
+        // informer.addEventHandler(this);
+        // factory.startAllRegisteredInformers();
+        // LOGGER.info("ConfigMap informer started for namespaces: " + namespaces);
 //        ConfigMapList list = getOpenshiftClient().configMaps().inNamespace(namespace).list();
 //        onInit(list.getItems());
     }

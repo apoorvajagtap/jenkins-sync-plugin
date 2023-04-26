@@ -25,17 +25,20 @@ import static io.fabric8.jenkins.openshiftsync.PodTemplateUtils.deleteAgents;
 import static io.fabric8.jenkins.openshiftsync.PodTemplateUtils.getPodTemplatesListFromImageStreams;
 import static io.fabric8.jenkins.openshiftsync.PodTemplateUtils.hasPodTemplate;
 import static io.fabric8.jenkins.openshiftsync.PodTemplateUtils.updateAgents;
-import static java.util.Collections.singletonMap;
+// import static java.util.Collections.singletonMap;
+// import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.openshift.client.DefaultOpenShiftClient;
+import io.fabric8.openshift.client.OpenShiftClient;
 
 import java.util.List;
-import java.util.Map;
+// import java.util.Map;
 
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.fabric8.kubernetes.api.model.ObjectMeta;
-import io.fabric8.kubernetes.client.dsl.base.OperationContext;
+// import io.fabric8.kubernetes.client.dsl.base.OperationContext;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
@@ -58,13 +61,34 @@ public class ImageStreamInformer implements ResourceEventHandler<ImageStream>, L
     public void start() {
         LOGGER.info("Starting ImageStream informer for " + namespace + "!!");
         LOGGER.debug("Listing ImageStream resources");
-        SharedInformerFactory factory = getInformerFactory().inNamespace(namespace);
-        Map<String, String[]> labels = singletonMap(IMAGESTREAM_AGENT_LABEL, IMAGESTREAM_AGENT_LABEL_VALUES);
-        OperationContext withLabels = new OperationContext().withLabelsIn(labels);
-        this.informer = factory.sharedIndexInformerFor(ImageStream.class, withLabels, getResyncPeriodMilliseconds());
-        informer.addEventHandler(this);
-        factory.startAllRegisteredInformers();
-        LOGGER.info("ImageStream informer started for namespace: " + namespace);
+        // SharedInformerFactory factory = getInformerFactory().inNamespace(namespace);
+        // Map<String, String[]> labels = singletonMap(IMAGESTREAM_AGENT_LABEL, IMAGESTREAM_AGENT_LABEL_VALUES);
+        // OperationContext withLabels = new OperationContext().withLabelsIn(labels);
+        // this.informer = factory.sharedIndexInformerFor(ImageStream.class, withLabels, getResyncPeriodMilliseconds());
+        
+        try (final OpenShiftClient client = new DefaultOpenShiftClient()){
+            final String namespace;
+            
+            SharedInformerFactory factory = client.informers();
+            
+            if (client.getConfiguration().getNamespace() != null){
+                namespace = client.getConfiguration().getNamespace();
+            } else if (client.getNamespace() != null){
+                namespace = client.getNamespace();
+            } else{
+                namespace = client.namespaces().list().getItems().stream().findFirst().orElseThrow(() -> new IllegalStateException("No namespace available")).getMetadata().getName();
+            }
+
+            client.imageStreams().inNamespace(namespace).withLabelIn(IMAGESTREAM_AGENT_LABEL, IMAGESTREAM_AGENT_LABEL_VALUES).list();
+        
+            informer.addEventHandler(this);
+            factory.startAllRegisteredInformers();
+            LOGGER.info("ImageStream informer started for namespace: " + namespace);
+        }
+        
+        // informer.addEventHandler(this);
+        // factory.startAllRegisteredInformers();
+        // LOGGER.info("ImageStream informer started for namespace: " + namespace);
 //        ImageStreamList list = getOpenshiftClient().imageStreams().inNamespace(namespace).withLabels(labels).list();
 //        onInit(list.getItems());
     }
