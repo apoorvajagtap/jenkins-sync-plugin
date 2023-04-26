@@ -26,7 +26,8 @@ import static io.fabric8.jenkins.openshiftsync.PodTemplateUtils.getPodTemplatesL
 import static io.fabric8.jenkins.openshiftsync.PodTemplateUtils.hasPodTemplate;
 import static io.fabric8.jenkins.openshiftsync.PodTemplateUtils.updateAgents;
 // import static java.util.Collections.singletonMap;
-import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+// import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 
 import java.util.List;
@@ -65,7 +66,7 @@ public class ImageStreamInformer implements ResourceEventHandler<ImageStream>, L
         // OperationContext withLabels = new OperationContext().withLabelsIn(labels);
         // this.informer = factory.sharedIndexInformerFor(ImageStream.class, withLabels, getResyncPeriodMilliseconds());
         
-        try (final OpenShiftClient client = new KubernetesClientBuilder().build().adapt(OpenShiftClient.class)){
+        try (final OpenShiftClient client = new DefaultOpenShiftClient()){
             final String namespace;
             
             SharedInformerFactory factory = client.informers();

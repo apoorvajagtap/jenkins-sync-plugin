@@ -19,11 +19,13 @@ import static io.fabric8.jenkins.openshiftsync.Constants.IMAGESTREAM_AGENT_LABEL
 import static io.fabric8.jenkins.openshiftsync.Constants.IMAGESTREAM_AGENT_LABEL_VALUES;
 import static io.fabric8.jenkins.openshiftsync.OpenShiftUtils.getInformerFactory;
 import static io.fabric8.jenkins.openshiftsync.PodTemplateUtils.CONFIGMAP;
+
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 // import static java.util.Collections.singletonMap;
 // import io.fabric8.kubernetes.client.Config;
 // import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+// import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 // import io.fabric8.kubernetes.client.dsl.Resource;
 
 import java.util.*;
@@ -63,7 +65,7 @@ public class ConfigMapClusterInformer implements ResourceEventHandler<ConfigMap>
         // this.informer = factory.sharedIndexInformerFor(ConfigMap.class, withLabels, getListIntervalInSeconds());
         
         // Config config = new ConfigBuilder().build();
-        try (final KubernetesClient client = new KubernetesClientBuilder().build()){
+        try (final KubernetesClient client = new DefaultKubernetesClient()){
             final String namespace;
             
             SharedInformerFactory factory = client.informers();

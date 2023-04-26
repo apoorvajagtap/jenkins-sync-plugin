@@ -29,8 +29,9 @@ import org.slf4j.LoggerFactory;
 
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+// import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 // import io.fabric8.kubernetes.client.dsl.base.OperationContext;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
@@ -61,7 +62,7 @@ public class SecretInformer implements ResourceEventHandler<Secret>, Lifecyclabl
         // OperationContext withLabels = new OperationContext().withLabels(labels);
         // this.informer = factory.sharedIndexInformerFor(Secret.class, withLabels, getResyncPeriodMilliseconds());
         
-        try (final KubernetesClient client = new KubernetesClientBuilder().build()){
+        try (final KubernetesClient client = new DefaultKubernetesClient()){
             final String namespace;
 
             SharedInformerFactory factory = client.informers();
